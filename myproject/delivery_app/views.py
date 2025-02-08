@@ -1,6 +1,6 @@
 from .models import *
 from .serializers import *
-from rest_framework import viewsets, generics
+from rest_framework import viewsets, generics, status
 from .permissions import CheckStatus, CheckOwner, CheckProduct
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -11,10 +11,15 @@ class RegisterView(generics.CreateAPIView):
     serializer_class = UserSerializer
 
     def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user = serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        try:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            user = serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except serializers.ValidationError as e:
+            return Response({'detail': f'Маалымат туура эмес, {e}'}, status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({'detail': f'{e}, Серверде ошибка'}, status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class CustomLoginView(TokenObtainPairView):
@@ -24,8 +29,10 @@ class CustomLoginView(TokenObtainPairView):
         serializer = self.get_serializer(data=request.data)
         try:
             serializer.is_valid(raise_exception=True)
-        except Exception:
-            return Response({'detail': 'Неверные учетные данные'}, status=status.HTTP_401_UNAUTHORIZED)
+        except serializers.ValidationError as e:
+            return Response({'detail': f'Маалымат туура эмес, {e}'}, status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({'detail': f'Ошибка в сервере, {e}'}, status=status.HTTP_501_NOT_IMPLEMENTED)
 
         user = serializer.validated_data
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -38,6 +45,8 @@ class LogoutView(generics.GenericAPIView):
             token = RefreshToken(refresh_token)
             token.blacklist()
             return Response(status=status.HTTP_205_RESET_CONTENT)
+        except KeyError as e:
+            return Response({'detail': 'Ключ туура эмес'})
         except Exception:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
@@ -45,6 +54,12 @@ class LogoutView(generics.GenericAPIView):
 class UserProfileViewSet(viewsets.ModelViewSet):
     queryset = UserProfile.objects.all()
     serializer_class = UserProfileSerializer
+
+    def get_queryset(self):
+        try:
+            return UserProfile.objects.filter(id=self.request.user.id)
+        except Exception as e:
+            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
@@ -86,6 +101,17 @@ class ProductViewSet(viewsets.ModelViewSet):
 class ProductCreateAPIView(generics.CreateAPIView):
     serializer_class = ProductSerializer
     permission_classes = [CheckProduct]
+
+    def create(self, request, *args, **kwargs):
+        try:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            product = serializer.save()
+            return Response(serializer.data, status.HTTP_201_CREATED)
+        except serializers.ValidationError as e:
+            return Response({'detail': 'Маалымат туура эмес берилди'}, status.HTTP_400_BAD_REQUEST)
+        except NameError as e:
+            return Response({'detail': 'Ошибка в коде '}, status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class ProductDetailUpdateDeleteAPIView(generics.RetrieveUpdateDestroyAPIView):

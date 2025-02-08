@@ -12,8 +12,11 @@ class UserSerializer(serializers.ModelSerializer):
         extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):
-        user = UserProfile.objects.create_user(**validated_data)
-        return user
+        try:
+            user = UserProfile.objects.create_user(**validated_data)
+            return user
+        except Exception as e:
+            raise serializers.ValidationError('Маалыматтар туура эмес')
 
 
 class LoginSerializer(serializers.Serializer):
