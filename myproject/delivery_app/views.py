@@ -5,7 +5,7 @@ from .permissions import CheckStatus, CheckOwner, CheckProduct
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken
-
+from django_filters.rest_framework import DjangoFilterBackend
 
 class RegisterView(generics.CreateAPIView):
     serializer_class = UserSerializer
@@ -70,6 +70,8 @@ class CategoryViewSet(viewsets.ModelViewSet):
 class StoreListAPIView(generics.ListAPIView):
     queryset = Store.objects.all()
     serializer_class = StoreListSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['category']
 
 
 class StoreDetailAPIView(generics.RetrieveAPIView):

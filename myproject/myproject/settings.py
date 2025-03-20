@@ -48,7 +48,8 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'rest_framework_swagger',
-    'drf_yasg'
+    'drf_yasg',
+    'django_filters',
 
 ]
 
@@ -154,7 +155,9 @@ AUTH_USER_MODEL = 'delivery_app.UserProfile'
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-    )
+    ),
+    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend']
+
 }
 
 
